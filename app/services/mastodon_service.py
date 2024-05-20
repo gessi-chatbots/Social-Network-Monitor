@@ -9,7 +9,7 @@ def mastodon_hashtag_search(hashtag, limit=10):
     endpoint = f'{MASTODON_BASE_URL_V1}/timelines/tag/{hashtag}'
     params = {'limit': limit}
     response = requests.get(endpoint, params=params)
-    response.raise_for_status()  # Si hay un error en la solicitud, lanzar una excepción
+    response.raise_for_status()  
     return response.json()
 
 def mastodon_query_search(query, content_type='statuses', limit=10, token=None):

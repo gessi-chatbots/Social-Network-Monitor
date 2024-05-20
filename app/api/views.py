@@ -18,7 +18,7 @@ class SearchPostsView(APIView):
         query = request.GET.get('q')
         content_type = request.GET.get('type')
         limit = request.GET.get('limit', 10) 
-        mastodon_token = request.GET.get('mastodon_token')  # Obtener el token de acceso de Mastodon
+        mastodon_token = request.GET.get('mastodon_token')
 
 
         if platform not in ['mastodon', 'reddit', 'newsapi']:

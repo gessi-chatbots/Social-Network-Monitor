@@ -7,16 +7,12 @@ REDDIT_CLIENT_ID = 'yrT0xQ8mLuESDSnrmltISA'
 REDDIT_SECRET = 'Tchb8glD5LRmV3RpYRsIL8kSKAk7sg'
 
 
-def reddit_search(query, subreddit='all', category='', count='', limit=10, sort='', t='', type='', token=None):
+def reddit_search(query, subreddit='all', limit=10, sort='', token=None):
     endpoint = f'{REDDIT_BASE_URL}/r/{subreddit}/search'
     params = {
         'q': query,
-        'category': category,
-        'count': count,
         'limit': limit,
         'sort': sort,
-        't': t,
-        'type': type
     }
     headers = {
         'Authorization': f'bearer {token}',  # Asegúrate de que el encabezado es 'bearer'

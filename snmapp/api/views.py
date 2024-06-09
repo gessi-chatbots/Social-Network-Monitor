@@ -12,7 +12,7 @@ import uuid
 from django.utils import timezone
 from django.db import IntegrityError
 from datetime import datetime
-import json
+from bs4 import BeautifulSoup
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -178,9 +178,12 @@ class SearchPostsView(APIView):
 
         if platform == 'mastodon':
             for post in posts:
+                html_content = post.get('content', '')
+                content = BeautifulSoup(html_content, 'html.parser').get_text()
+                
                 document = Document(
                     identifier=str(uuid.uuid4()),
-                    text=post.get('content', ''),
+                    text=content,
                     datePublished=post.get('created_at', '').split('T')[0],
                     dateCreated=timezone.now().date(),
                     author=post.get('account', {}).get('username', 'Unknown'),

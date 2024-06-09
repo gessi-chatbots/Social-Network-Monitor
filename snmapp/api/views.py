@@ -43,7 +43,7 @@ class SearchPostsView(APIView):
                 if not token:
                     return Response({'error': 'Mastodon token is required'}, status=400)
                 try:
-                    posts = mastodon_query_search(query, max_limit, token)
+                    posts = mastodon_query_search(query, limit, token)
                 except Exception as e:
                     return Response({'error': str(e)}, status=500)
             else:

@@ -12,7 +12,7 @@ import uuid
 from django.utils import timezone
 from django.db import IntegrityError
 from datetime import datetime
-from bs4 import BeautifulSoup
+from lxml import etree
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -179,7 +179,9 @@ class SearchPostsView(APIView):
         if platform == 'mastodon':
             for post in posts:
                 html_content = post.get('content', '')
-                content = BeautifulSoup(html_content, 'html.parser').get_text()
+                parser = etree.HTMLParser()
+                tree = etree.fromstring(html_content, parser)
+                content = tree.xpath('string()')
                 
                 document = Document(
                     identifier=str(uuid.uuid4()),

@@ -90,7 +90,7 @@ DATABASES = {
         'NAME': 'snm_bd',
         'USER': 'snm_bd_user',
         'PASSWORD': '654ese5uBf3ueGmiO7zJfiYbKYyvM2pP',
-        'HOST': 'dpg-cpiqscmct0pc73fvldq0-a',
+        'HOST': 'dpg-cpiqscmct0pc73fvldq0-a.frankfurt-postgres.render.com',
         'PORT': '5432',
     }
 }

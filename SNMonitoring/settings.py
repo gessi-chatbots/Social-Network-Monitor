@@ -88,9 +88,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'snm_bd',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
+        'USER': 'snm_bd_user',
+        'PASSWORD': '654ese5uBf3ueGmiO7zJfiYbKYyvM2pP',
+        'HOST': 'dpg-cpiqscmct0pc73fvldq0-a',
         'PORT': '5432',
     }
 }

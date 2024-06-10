@@ -6,12 +6,12 @@ router = DefaultRouter()
 router.register(r'documents', DocumentViewSet, basename='document')
 
 urlpatterns = [
-    path('search_posts/', SearchPostsView.as_view(), name='search_posts'),
+    path('posts/', SearchPostsView.as_view(), name='search_posts'),
     path('reddit_token/', RedditAccessTokenView.as_view(), name='reddit_token'),
-    path('delete_posts/', DeleteDocumentView.as_view(), name='delete_posts'),
-    path('add_post_json/', AddDocumentFromJSONView.as_view(), name='add_post_json'),
-    path('add_post_params/', AddDocumentFromParamsView.as_view(), name='add_post_params'),
-    path('update_post/', UpdateDocumentView.as_view(), name='update_post'),
+    path('posts/', DeleteDocumentView.as_view(), name='delete_posts'),
+    path('add_by_json/', AddDocumentFromJSONView.as_view(), name='add_post_json'),
+    path('add_by_params/', AddDocumentFromParamsView.as_view(), name='add_post_params'),
+    path('post/', UpdateDocumentView.as_view(), name='update_post'),
 
 ]
 

@@ -393,7 +393,7 @@ class AddDocumentFromParamsView(APIView):
 
 class UpdateDocumentView(APIView):
     def put(self, request, *args, **kwargs):
-        document_identifier = request.GET.get('identifier')  # Obtener el identificador de la URL
+        document_identifier = kwargs.get('identifier')  # Obtener el identificador de la URL
         
         try:
             document = Document.objects.get(identifier=document_identifier)  # Buscar el documento por identifier

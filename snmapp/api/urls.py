@@ -11,7 +11,7 @@ urlpatterns = [
     path('posts/', DeleteDocumentView.as_view(), name='delete_posts'),
     path('add_by_json/', AddDocumentFromJSONView.as_view(), name='add_post_json'),
     path('add_by_params/', AddDocumentFromParamsView.as_view(), name='add_post_params'),
-    path('post/', UpdateDocumentView.as_view(), name='update_post'),
+    path('post/<str:identifier>/', UpdateDocumentView.as_view(), name='update_post'),
 
 ]
 

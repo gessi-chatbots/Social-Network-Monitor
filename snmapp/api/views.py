@@ -284,74 +284,116 @@ class AddDocumentFromJSONView(APIView):
             return Response({'error': 'No data provided in the request body.'}, status=400)
 
         saved_count = 0
-        if platform == 'mastodon':
-            statuses = data.get('statuses', [])
-            if not statuses:
-                return Response({'error': 'Incorrect request body. Add a valid request body (the response of the Search method in Mastodon API)'}, status=400)
 
-            for post in statuses:
+        if platform == 'mastodon' or platform == 'reddit' or platform == 'newsapi':
+            # Verificar si la clave correspondiente existe en los datos recibidos
+            entries = []
+
+            if isinstance(data, list):
+                # Si los datos son una lista, asumir que es una lista de entradas
+                entries = data
+            elif isinstance(data, dict):
+                # Si los datos son un diccionario, asumir que es una entrada individual
+                entries = [data]
+
+            for entry in entries:
                 try:
-                    document = Document(
-                        identifier=str(uuid.uuid4()),
-                        text=post.get('content', ''),
-                        datePublished=post.get('created_at', '').split('T')[0],
-                        dateCreated=timezone.now().date(),
-                        author=post.get('account', {}).get('username', 'Unknown'),
-                        url=post.get('url', ''),
-                        alternateName=post.get('id', ''),
-                        additionalType='mastodon'
-                    )
-                    document.save()
-                    saved_count += 1
+                    if platform == 'mastodon':
+                        if 'statuses' in entry:
+                            statuses = entry['statuses']
+                            for post in statuses:
+                                document = Document(
+                                    identifier=str(uuid.uuid4()),
+                                    text=post.get('content', ''),
+                                    datePublished=post.get('created_at', '').split('T')[0],
+                                    dateCreated=timezone.now().date(),
+                                    author=post.get('account', {}).get('username', 'Unknown'),
+                                    url=post.get('url', ''),
+                                    alternateName=post.get('id', ''),
+                                    additionalType='mastodon'
+                                )
+                                document.save()
+                                saved_count += 1
+                        else:
+                            document = Document(
+                                identifier=str(uuid.uuid4()),
+                                text=entry.get('content', ''),
+                                datePublished=entry.get('created_at', '').split('T')[0],
+                                dateCreated=timezone.now().date(),
+                                author=entry.get('account', {}).get('username', 'Unknown'),
+                                url=entry.get('url', ''),
+                                alternateName=entry.get('id', ''),
+                                additionalType='mastodon'
+                            )
+                            document.save()
+                            saved_count += 1
+
+                    elif platform == 'reddit':
+                        if 'data' in entry:
+                            children = entry['data'].get('children', [])
+                            for child in children:
+                                post = child.get('data', {})
+                                document = Document(
+                                    identifier=str(uuid.uuid4()),
+                                    text=post.get('selftext', ''),
+                                    datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
+                                    dateCreated=timezone.now().date(),
+                                    author=post.get('author', 'Unknown'),
+                                    url=f"https://www.reddit.com{post.get('permalink', '')}",
+                                    alternateName=post.get('id', ''),
+                                    additionalType='reddit'
+                                )
+                                document.save()
+                                saved_count += 1
+                        else:
+                            post = entry.get('data', {})
+                            document = Document(
+                                identifier=str(uuid.uuid4()),
+                                text=post.get('selftext', ''),
+                                datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
+                                dateCreated=timezone.now().date(),
+                                author=post.get('author', 'Unknown'),
+                                url=f"https://www.reddit.com{post.get('permalink', '')}",
+                                alternateName=post.get('id', ''),
+                                additionalType='reddit'
+                            )
+                            document.save()
+                            saved_count += 1
+
+                    elif platform == 'newsapi':
+                        if 'articles' in entry:
+                            articles = entry['articles']
+                            for article in articles:
+                                document = Document(
+                                    identifier=str(uuid.uuid4()),
+                                    text=article.get('content', ''),
+                                    datePublished=article.get('publishedAt', '').split('T')[0],
+                                    dateCreated=timezone.now().date(),
+                                    author=article.get('author', 'Unknown'),
+                                    url=article.get('url', ''),
+                                    alternateName=article.get('source', {}).get('name', 'Unknown'),
+                                    additionalType='newsapi'
+                                )
+                                document.save()
+                                saved_count += 1
+                        else:
+                            document = Document(
+                                identifier=str(uuid.uuid4()),
+                                text=entry.get('content', ''),
+                                datePublished=entry.get('publishedAt', '').split('T')[0],
+                                dateCreated=timezone.now().date(),
+                                author=entry.get('author', 'Unknown'),
+                                url=entry.get('url', ''),
+                                alternateName=entry.get('source', {}).get('name', 'Unknown'),
+                                additionalType='newsapi'
+                            )
+                            document.save()
+                            saved_count += 1
+
                 except Exception as e:
                     continue
-        
-        elif platform == 'reddit':
-            children = data.get('data', {}).get('children', [])
-            if not children:
-                return Response({'error': 'Incorrect request body. Add a valid request body (the response of the Search method in Reddit API)'}, status=400)
 
-            for child in children:
-                post = child.get('data', {})
-                try:
-                    document = Document(
-                        identifier=str(uuid.uuid4()),
-                        text=post.get('selftext', ''),
-                        datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
-                        dateCreated=timezone.now().date(),
-                        author=post.get('author', 'Unknown'),
-                        url=f"https://www.reddit.com{post.get('permalink', '')}",
-                        alternateName=post.get('id', ''),
-                        additionalType='reddit'
-                    )
-                    document.save()
-                    saved_count += 1
-                except Exception as e:
-                    continue
-        
-        elif platform == 'newsapi':
-            articles = data.get('articles', [])
-            if not articles:
-                return Response({'error': 'Incorrect request body. Add a valid request body (the response of the Search method in NewsAPI API)'}, status=400)
-
-            for article in articles:
-                try:
-                    document = Document(
-                        identifier=str(uuid.uuid4()),
-                        text=article.get('content', ''),
-                        datePublished=article.get('publishedAt', '').split('T')[0],
-                        dateCreated=timezone.now().date(),
-                        author=article.get('author', 'Unknown'),
-                        url=article.get('url', ''),
-                        alternateName=article.get('source', {}).get('name', 'Unknown'),
-                        additionalType='newsapi'
-                    )
-                    document.save()
-                    saved_count += 1
-                except Exception as e:
-                    continue
-
-        if saved_count > 0:                
+        if saved_count > 0:
             return Response({'message': f'Successfully saved {saved_count} posts.'}, status=201)
         else:
             return Response({'error': 'No posts were saved.'}, status=400)

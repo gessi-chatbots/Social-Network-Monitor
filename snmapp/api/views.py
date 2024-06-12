@@ -315,9 +315,11 @@ class AddDocumentFromJSONView(APIView):
                                 document.save()
                                 saved_count += 1
                         else:
+                            html_content = post.get('content', '')
+                            content = BeautifulSoup(html_content, 'html.parser').get_text()
                             document = Document(
                                 identifier=str(uuid.uuid4()),
-                                text=entry.get('content', ''),
+                                text=content,
                                 datePublished=entry.get('created_at', '').split('T')[0],
                                 dateCreated=timezone.now().date(),
                                 author=entry.get('account', {}).get('username', 'Unknown'),

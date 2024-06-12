@@ -334,9 +334,12 @@ class AddDocumentFromJSONView(APIView):
                             children = entry['data'].get('children', [])
                             for child in children:
                                 post = child.get('data', {})
+                                text = post.get('selftext', '')
+                                if not text:
+                                    text = data.get('title', '')
                                 document = Document(
                                     identifier=str(uuid.uuid4()),
-                                    text=post.get('selftext', ''),
+                                    text=text,
                                     datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
                                     dateCreated=timezone.now().date(),
                                     author=post.get('author', 'Unknown'),

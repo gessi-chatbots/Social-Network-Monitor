@@ -299,12 +299,9 @@ class AddDocumentFromJSONView(APIView):
                         if 'statuses' in entry:
                             statuses = entry['statuses']
                             for post in statuses:
-                                html_content = post.get('content', '')
-                                content = BeautifulSoup(html_content, 'html.parser').get_text()
-                                
                                 document = Document(
                                     identifier=str(uuid.uuid4()),
-                                    text=content,
+                                    text=post.get('content', ''),
                                     datePublished=post.get('created_at', '').split('T')[0],
                                     dateCreated=timezone.now().date(),
                                     author=post.get('account', {}).get('username', 'Unknown'),
@@ -315,11 +312,9 @@ class AddDocumentFromJSONView(APIView):
                                 document.save()
                                 saved_count += 1
                         else:
-                            html_content = post.get('content', '')
-                            content = BeautifulSoup(html_content, 'html.parser').get_text()
                             document = Document(
                                 identifier=str(uuid.uuid4()),
-                                text=content,
+                                text=entry.get('content', ''),
                                 datePublished=entry.get('created_at', '').split('T')[0],
                                 dateCreated=timezone.now().date(),
                                 author=entry.get('account', {}).get('username', 'Unknown'),

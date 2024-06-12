@@ -118,7 +118,7 @@ class SearchPostsView(APIView):
                         if from_date <= published_date <= to_date:
                             filtered_posts.append(post)
                     except (KeyError, ValueError) as e:
-                        continue  # Skip posts with missing or malformed dates
+                        continue  
             elif from_date:
                 for post in posts:
                     try:
@@ -260,28 +260,31 @@ class RedditAccessTokenView(APIView):
         grant_type = request.data.get('grant_type')
         username = request.data.get('username')
         password = request.data.get('password')
+        client_id = request.data.get('client_id')
+        client_secret = request.data.get('client_secret')
 
-        if not (grant_type and username and password):
-            return Response({'error': 'Missing grant_type, username, or password'}, status=400)
+        if not (grant_type and username and password and client_id and client_secret):
+            return Response({'error': 'Missing grant_type, username, password, client_id, or client_secret'}, status=400)
 
         try:
-            access_token = reddit_access_token(grant_type, username, password)
+            access_token = reddit_access_token(grant_type, username, password, client_id, client_secret)
             return Response({'access_token': access_token}, status=200)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
 
 class DeleteDocumentView(APIView):
-    def delete(self, request):
-        identifiers = request.data.get('identifiers', [])
-        if not identifiers:
-            return Response({'error': 'No identifiers provided'}, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request, identifier, *args, **kwargs):
+        try:
+            document = Document.objects.get(identifier=identifier)
+            document.delete()
+            return Response({'message': f'Document with identifier {identifier} deleted successfully.'}, status=status.HTTP_200_OK)
+        except Document.DoesNotExist:
+            return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
-        # Eliminar los documentos que coincidan con los identificadores proporcionados
-        deleted_count, _ = Document.objects.filter(identifier__in=identifiers).delete()
-
-        return Response({'deleted': deleted_count}, status=status.HTTP_200_OK)
-    
 
 class AddDocumentFromJSONView(APIView):
     def post(self, request, *args, **kwargs):
@@ -393,17 +396,15 @@ class AddDocumentFromParamsView(APIView):
 
 class UpdateDocumentView(APIView):
     def put(self, request, *args, **kwargs):
-        document_identifier = kwargs.get('identifier')  # Obtener el identificador de la URL
+        document_identifier = kwargs.get('identifier')  
         
         try:
-            document = Document.objects.get(identifier=document_identifier)  # Buscar el documento por identifier
+            document = Document.objects.get(identifier=document_identifier) 
         except Document.DoesNotExist:
             return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Obtener los datos actualizados del cuerpo de la solicitud
         updated_data = request.data
         
-        # Actualizar los campos permitidos
         allowed_fields = ['text', 'datePublished', 'url', 'author', 'alternateName', 'additionalType']
         for field in allowed_fields:
             value = updated_data.get(field)
@@ -414,3 +415,12 @@ class UpdateDocumentView(APIView):
             return Response({'message': 'Document updated successfully.'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetDocumentView(APIView):
+    def get(self, request, identifier, *args, **kwargs):
+        try:
+            document = Document.objects.get(identifier=identifier)
+            serializer = DocumentSerializer(document)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Document.DoesNotExist:
+            return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)

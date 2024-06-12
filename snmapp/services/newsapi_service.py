@@ -8,7 +8,6 @@ def newsapi_search(apiKey, q, from_date='', to_date='', pageSize=''):
         'q': q,
         'from': from_date,
         'to': to_date,
-        #'sortBy': sortBy,
         'pageSize': pageSize
     }
     

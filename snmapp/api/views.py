@@ -278,12 +278,12 @@ class DeleteDocumentView(APIView):
         try:
             document = Document.objects.get(identifier=identifier)
             document.delete()
-            return Response({'message': f'Document with identifier "{identifier}" deleted successfully.'}, status=status.HTTP_200_OK)
+            return Response({'message': f'Document with identifier: {identifier} deleted successfully.'}, status=status.HTTP_200_OK)
         except Document.DoesNotExist:
             return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+  
 
 
 class AddDocumentFromJSONView(APIView):

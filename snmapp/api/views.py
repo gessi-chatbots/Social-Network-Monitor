@@ -360,6 +360,39 @@ class AddDocumentFromJSONView(APIView):
                             document.save()
                             saved_count += 1
 
+                    elif platform == 'reddit_v2':
+                        if 'data' in entry:
+                            children = entry['data'].get('children', [])
+                            for child in children:
+                                post = child.get('data', {})
+                                # Handling new structure fields
+                                document = Document(
+                                    identifier=str(uuid.uuid4()),
+                                    text=post.get('selftext', ''),
+                                    datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
+                                    dateCreated=timezone.now().date(),
+                                    author=post.get('author', 'Unknown'),
+                                    url=post.get('url_overridden_by_dest', ''),  # Using different field
+                                    alternateName=post.get('id', ''),
+                                    additionalType='reddit'  # Different type
+                                )
+                                document.save()
+                                saved_count += 1
+                        else:
+                            post = entry.get('data', {})
+                            document = Document(
+                                identifier=str(uuid.uuid4()),
+                                text=post.get('selftext', ''),
+                                datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
+                                dateCreated=timezone.now().date(),
+                                author=post.get('author', 'Unknown'),
+                                url=post.get('url_overridden_by_dest', ''),  # Using different field
+                                alternateName=post.get('id', ''),
+                                additionalType='reddit_new_structure'  # Different type
+                            )
+                            document.save()
+                            saved_count += 1
+                    
                     elif platform == 'newsapi':
                         if 'articles' in entry:
                             articles = entry['articles']

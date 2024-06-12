@@ -333,23 +333,8 @@ class AddDocumentFromJSONView(APIView):
                     elif platform == 'reddit':
                         if 'data' in entry:
                             children = entry['data'].get('children', [])
-                            if children is not None:
-                                for child in children:
-                                    post = child.get('data', {})
-                                    document = Document(
-                                        identifier=str(uuid.uuid4()),
-                                        text=post.get('selftext', ''),
-                                        datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
-                                        dateCreated=timezone.now().date(),
-                                        author=post.get('author', 'Unknown'),
-                                        url=f"https://www.reddit.com{post.get('permalink', '')}",
-                                        alternateName=post.get('id', ''),
-                                        additionalType='reddit'
-                                    )
-                                    document.save()
-                                    saved_count += 1
-                            else:
-                                post = entry['data']
+                            for child in children:
+                                post = child.get('data', {})
                                 document = Document(
                                     identifier=str(uuid.uuid4()),
                                     text=post.get('selftext', ''),
@@ -362,7 +347,6 @@ class AddDocumentFromJSONView(APIView):
                                 )
                                 document.save()
                                 saved_count += 1
-                                
                         else:
                             post = entry.get('data', {})
                             document = Document(

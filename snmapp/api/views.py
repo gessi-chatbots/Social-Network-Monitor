@@ -336,7 +336,7 @@ class AddDocumentFromJSONView(APIView):
                                 post = child.get('data', {})
                                 text = post.get('selftext', '')
                                 if not text:
-                                    text = data.get('title', '')
+                                    text = post.get('title', '')
                                 document = Document(
                                     identifier=str(uuid.uuid4()),
                                     text=text,
@@ -351,9 +351,12 @@ class AddDocumentFromJSONView(APIView):
                                 saved_count += 1
                         else:
                             post = entry.get('data', {})
+                            text = post.get('selftext', '')
+                            if not text:
+                                text = post.get('title', '')
                             document = Document(
                                 identifier=str(uuid.uuid4()),
-                                text=post.get('selftext', ''),
+                                text=text,
                                 datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
                                 dateCreated=timezone.now().date(),
                                 author=post.get('author', 'Unknown'),
@@ -363,6 +366,7 @@ class AddDocumentFromJSONView(APIView):
                             )
                             document.save()
                             saved_count += 1
+
 
                     elif platform == 'newsapi':
                         if 'articles' in entry:

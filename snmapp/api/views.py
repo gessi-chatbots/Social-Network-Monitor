@@ -286,14 +286,11 @@ class AddDocumentFromJSONView(APIView):
         saved_count = 0
 
         if platform == 'mastodon' or platform == 'reddit' or platform == 'newsapi':
-            # Verificar si la clave correspondiente existe en los datos recibidos
             entries = []
 
             if isinstance(data, list):
-                # Si los datos son una lista, asumir que es una lista de entradas
                 entries = data
             elif isinstance(data, dict):
-                # Si los datos son un diccionario, asumir que es una entrada individual
                 entries = [data]
 
             for entry in entries:
@@ -302,9 +299,12 @@ class AddDocumentFromJSONView(APIView):
                         if 'statuses' in entry:
                             statuses = entry['statuses']
                             for post in statuses:
+                                html_content = post.get('content', '')
+                                content = BeautifulSoup(html_content, 'html.parser').get_text()
+                                
                                 document = Document(
                                     identifier=str(uuid.uuid4()),
-                                    text=post.get('content', ''),
+                                    text=content,
                                     datePublished=post.get('created_at', '').split('T')[0],
                                     dateCreated=timezone.now().date(),
                                     author=post.get('account', {}).get('username', 'Unknown'),

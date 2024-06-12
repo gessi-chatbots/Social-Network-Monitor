@@ -273,19 +273,6 @@ class RedditAccessTokenView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
-class DeleteDocumentView(APIView):
-    def delete(self, request, identifier, *args, **kwargs):
-        try:
-            document = Document.objects.get(identifier=identifier)
-            document.delete()
-            return Response({'message': f'Document with identifier: {identifier} deleted successfully.'}, status=status.HTTP_200_OK)
-        except Document.DoesNotExist:
-            return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-  
-
-
 class AddDocumentFromJSONView(APIView):
     def post(self, request, *args, **kwargs):
         platform = request.GET.get('platform')
@@ -394,29 +381,8 @@ class AddDocumentFromParamsView(APIView):
         except Exception as e:
             return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class UpdateDocumentView(APIView):
-    def put(self, request, *args, **kwargs):
-        document_identifier = kwargs.get('identifier')  
-        
-        try:
-            document = Document.objects.get(identifier=document_identifier) 
-        except Document.DoesNotExist:
-            return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        updated_data = request.data
-        
-        allowed_fields = ['text', 'datePublished', 'url', 'author', 'alternateName', 'additionalType']
-        for field in allowed_fields:
-            value = updated_data.get(field)
-            if value is not None and value != '':
-                setattr(document, field, value)
-        try:
-            document.save()
-            return Response({'message': 'Document updated successfully.'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class GetDocumentView(APIView):
+class DocumentDetailView(APIView):
     def get(self, request, identifier, *args, **kwargs):
         try:
             document = Document.objects.get(identifier=identifier)
@@ -424,3 +390,30 @@ class GetDocumentView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Document.DoesNotExist:
             return Response({'error': 'Document not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request, identifier, *args, **kwargs):
+        try:
+            document = Document.objects.get(identifier=identifier)
+            updated_data = request.data
+            allowed_fields = ['text', 'datePublished', 'url', 'author', 'alternateName', 'additionalType']
+            for field in allowed_fields:
+                if field in updated_data:
+                    setattr(document, field, updated_data[field])
+            document.save()
+            return Response({'message': f'Document with identifier: {identifier} updated successfully.'}, status=status.HTTP_200_OK)
+        except Document.DoesNotExist:
+            return Response({'error': f'Document with identifier: {identifier} not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, identifier, *args, **kwargs):
+        try:
+            document = Document.objects.get(identifier=identifier)
+            document.delete()
+            return Response({'message': f'Document with identifier {identifier} deleted successfully.'}, status=status.HTTP_200_OK)
+        except Document.DoesNotExist:
+            return Response({'error': f'Document with identifier: {identifier} not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

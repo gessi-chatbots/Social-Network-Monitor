@@ -5,7 +5,7 @@ import uuid
 from django.db import IntegrityError
 from django.utils import timezone
 
-NEWSAPI_BASE_URL = 'https://newsapi.org/v2/everything'
+NEWSAPI_BASE_URL = 'https://newsapi.org/v2'
 
 def newsapi_query_search(apiKey, query, from_date=None, to_date=None, limit=10):
     endpoint = f'{NEWSAPI_BASE_URL}/everything'

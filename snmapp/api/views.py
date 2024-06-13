@@ -2,10 +2,10 @@ from django.http import JsonResponse
 from rest_framework import viewsets
 from snmapp.models import Document
 from snmapp.api.serializer import DocumentSerializer
-from snmapp.services.mastodon_service import mastodon_query_search as mastodon_query_search
-from snmapp.services.reddit_service import reddit_search as reddit_search, reddit_access_token as reddit_access_token
-from snmapp.services.newsapi_service import newsapi_search as newsapi_search
-from snmapp.services.local_service import get_document as get_document, update_document as update_document, delete_document as delete_document
+from snmapp.services.mastodon_service import mastodon_query_search, filter_mastodon_posts, save_mastodon_posts, save_posts_json_mastodon, search_mastodon_posts
+from snmapp.services.reddit_service import reddit_query_search, reddit_access_token, filter_reddit_posts, save_reddit_posts, save_posts_json_reddit, search_reddit_posts
+from snmapp.services.newsapi_service import newsapi_query_search, filter_newsapi_posts, save_newsapi_posts, save_articles_json_newsapi, search_newsapi_posts
+from snmapp.services.local_service import get_document, update_document, delete_document, save_document_from_params
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -31,216 +31,21 @@ class SearchPostsView(APIView):
         to_date = request.GET.get('to')
 
         if platform not in ['mastodon', 'reddit', 'newsapi', 'local']:
-            return Response({'error': 'Invalid platform provided'}, status=400)
+            return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         if platform == 'local':
             return self.search_local(query, limit, from_date, to_date)
-
-        posts = []
-        if platform == 'mastodon':
-            og_limit = limit
-            max_limit = 40
-            if query:
-                if not token:
-                    return Response({'error': 'Mastodon token is required'}, status=400)
-                try:
-                    posts = mastodon_query_search(query, limit, token)
-                except Exception as e:
-                    return Response({'error': str(e)}, status=500)
-            else:
-                return Response({'error': 'No query provided'}, status=400)
-
-            filtered_posts = self.filter_posts(posts.get('statuses', []), from_date, to_date)
-
-            self.save_posts(filtered_posts, query)
-            if og_limit > max_limit:
-                limit = max_limit
-                return Response({
-                    'message': f'Mastodon only supports a maximum of {max_limit} results. Returning {limit} results.',
-                    'posts': filtered_posts
-                }, status=200)
-            else:
-                return Response(filtered_posts, status=200)
-
+        elif platform == 'mastodon':
+            filtered_posts = search_mastodon_posts(query, limit, token, from_date, to_date)
         elif platform == 'reddit':
-            if not query:
-                return Response({'error': 'No query provided for Reddit search'}, status=400)
-            if not token:
-                return Response({'error': 'Reddit token is required'}, status=400)
-            subreddit = 'all'
-            sort = request.GET.get('sort', '')
-            try:
-                posts = reddit_search(query, subreddit, limit, sort, token)
-            except Exception as e:
-                return Response({'error': str(e)}, status=500)
-
-            children = [post.get('data') for post in posts.get('data', {}).get('children', [])]
-
-            filtered_posts = self.filter_posts(children, from_date, to_date)
-            filtered_posts = filtered_posts[:limit]
-
-            self.save_posts(filtered_posts, query)
-            return Response(filtered_posts, status=200)
-
+            filtered_posts = search_reddit_posts(query, limit, token, from_date, to_date)
         elif platform == 'newsapi':
-            if not query:
-                return Response({'error': 'No query provided for NewsAPI search'}, status=400)
-            if not token:
-                return Response({'error': 'NewsAPI token is required'}, status=400)
+            filtered_posts = search_newsapi_posts(query, limit, token, from_date, to_date)
+        else:
+            return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-            apiKey = token
-            pageSize = limit
-
-            try:
-                posts = newsapi_search(apiKey, query, from_date, to_date, pageSize)
-            except Exception as e:
-                return Response({'error': str(e)}, status=500)
-
-            self.save_posts(posts['articles'], query)
-            return Response(posts['articles'], status=200)
-
-        return Response({'error': 'Invalid platform provided'}, status=400)
-
-    def filter_posts(self, posts, from_date=None, to_date=None):
-        filtered_posts = []
-        platform = self.request.GET.get('platform')
-
-        if platform == 'mastodon':
-
-            if from_date:
-                from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
-            if to_date:
-                to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
-
-            if from_date and to_date:
-                for post in posts:
-                    try:
-                        published_date = datetime.strptime(post["created_at"], '%Y-%m-%dT%H:%M:%S.%fZ').date()
-                        if from_date <= published_date <= to_date:
-                            filtered_posts.append(post)
-                    except (KeyError, ValueError) as e:
-                        continue  
-            elif from_date:
-                for post in posts:
-                    try:
-                        published_date = datetime.strptime(post["created_at"], '%Y-%m-%dT%H:%M:%S.%fZ').date()
-                        if from_date <= published_date:
-                            filtered_posts.append(post)
-                    except (KeyError, ValueError) as e:
-                        continue
-            elif to_date:
-                for post in posts:
-                    try:
-                        published_date = datetime.strptime(post["created_at"], '%Y-%m-%dT%H:%M:%S.%fZ').date()
-                        if published_date <= to_date:
-                            filtered_posts.append(post)
-                    except (KeyError, ValueError) as e:
-                        continue
-            else:
-                filtered_posts = posts
-                
-        elif platform == 'reddit':
-            if from_date:
-                from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
-            if to_date:
-                to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
-
-            if from_date and to_date:
-                for post in posts:
-                    try:
-                        published_date = datetime.fromtimestamp(post["created"]).date()
-                        if from_date <= published_date <= to_date:
-                            filtered_posts.append(post)
-                    except (KeyError, ValueError) as e:
-                        continue
-            elif from_date:
-                for post in posts:
-                    try:
-                        published_date = datetime.fromtimestamp(post["created"]).date()
-                        if from_date <= published_date:
-                            filtered_posts.append(post)
-                    except (KeyError, ValueError) as e:
-                        continue
-            elif to_date:
-                for post in posts:
-                    try:
-                        published_date = datetime.fromtimestamp(post["created"]).date()
-                        if published_date <= to_date:
-                            filtered_posts.append(post)
-                    except (KeyError, ValueError) as e:
-                        continue
-            else:
-                filtered_posts = posts
-
-        return filtered_posts
-
-    def save_posts(self, posts, additional_type):
-        platform = self.request.GET.get('platform')
-
-        if platform == 'mastodon':
-            for post in posts:
-                html_content = post.get('content', '')
-                content = BeautifulSoup(html_content, 'html.parser').get_text()
-                
-                document = Document(
-                    identifier=str(uuid.uuid4()),
-                    text=content,
-                    datePublished=post.get('created_at', '').split('T')[0],
-                    dateCreated=timezone.now().date(),
-                    author=post.get('account', {}).get('username', 'Unknown'),
-                    url=post.get('url', ''),
-                    alternateName=post.get('id', ''),
-                    additionalType=additional_type
-                )
-                try:
-                    document.save()
-                except IntegrityError:
-                    continue
-
-        elif platform == 'reddit':
-            for post in posts:
-                data = post
-                date_published = datetime.fromtimestamp(data.get('created', ''))
-                text = data.get('selftext', '')
-                if not text:
-                    text = data.get('title', '')
-                document = Document(
-                    identifier=str(uuid.uuid4()),
-                    text=text,
-                    datePublished=date_published,
-                    dateCreated=timezone.now().date(),
-                    author=data.get('author', 'Unknown'),
-                    url=f"https://www.reddit.com{data.get('permalink', '')}",
-                    alternateName=data.get('id', ''),
-                    additionalType=additional_type
-                )
-                try:
-                    document.save()
-                except IntegrityError:
-                    continue
-
-        elif platform == 'newsapi':
-            for post in posts:
-                author = post.get('author', 'Unknown')
-                if author is None or author.startswith('https'):
-                    author = post.get('source', {}).get('name', 'Unknown')
-
-                document = Document(
-                    identifier=str(uuid.uuid4()),
-                    text=post.get('content', ''),
-                    datePublished=datetime.strptime(post.get('publishedAt', ''), '%Y-%m-%dT%H:%M:%SZ').date(),
-                    dateCreated=timezone.now().date(),
-                    author=author,
-                    url=post.get('url', ''),
-                    alternateName=post.get('title', ''),
-                    additionalType=additional_type
-                )
-                try:
-                    document.save()
-                except IntegrityError:
-                    continue
-                
-
+        return Response(filtered_posts, status=status.HTTP_200_OK)
+    
     def search_local(self, query, limit, from_date=None, to_date=None):
         filters = {}
 
@@ -284,153 +89,43 @@ class AddDocumentFromJSONView(APIView):
         if not data:
             return Response({'error': 'No data provided in the request body.'}, status=400)
 
-        saved_count = 0
+        try:
+            saved_count = 0
 
-        if platform == 'mastodon' or platform == 'reddit' or platform == 'newsapi':
-            entries = []
+            if platform == 'mastodon':
+                saved_count = save_posts_json_mastodon(data)
+            elif platform == 'reddit':
+                saved_count = save_posts_json_reddit(data)
+            elif platform == 'newsapi':
+                saved_count = save_articles_json_newsapi(data)
 
-            if isinstance(data, list):
-                entries = data
-            elif isinstance(data, dict):
-                entries = [data]
-
-            for entry in entries:
-                try:
-                    if platform == 'mastodon':
-                        if 'statuses' in entry:
-                            statuses = entry['statuses']
-                            for post in statuses:
-                                html_content = post.get('content', '')
-                                content = BeautifulSoup(html_content, 'html.parser').get_text()
-                                document = Document(
-                                    identifier=str(uuid.uuid4()),
-                                    text=content,
-                                    datePublished=post.get('created_at', '').split('T')[0],
-                                    dateCreated=timezone.now().date(),
-                                    author=post.get('account', {}).get('username', 'Unknown'),
-                                    url=post.get('url', ''),
-                                    alternateName=post.get('id', ''),
-                                    additionalType='mastodon'
-                                )
-                                document.save()
-                                saved_count += 1
-                        else:
-                            html_content = entry.get('content', '')
-                            content = BeautifulSoup(html_content, 'html.parser').get_text()
-                            document = Document(
-                                identifier=str(uuid.uuid4()),
-                                text=entry.get('content', ''),
-                                datePublished=entry.get('created_at', '').split('T')[0],
-                                dateCreated=timezone.now().date(),
-                                author=entry.get('account', {}).get('username', 'Unknown'),
-                                url=entry.get('url', ''),
-                                alternateName=entry.get('id', ''),
-                                additionalType='mastodon'
-                            )
-                            document.save()
-                            saved_count += 1
-
-                    elif platform == 'reddit':
-                        if 'data' in entry:
-                            children = entry['data'].get('children', [])
-                            for child in children:
-                                post = child.get('data', {})
-                                text = post.get('selftext', '')
-                                if not text:
-                                    text = post.get('title', '')
-                                document = Document(
-                                    identifier=str(uuid.uuid4()),
-                                    text=text,
-                                    datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
-                                    dateCreated=timezone.now().date(),
-                                    author=post.get('author', 'Unknown'),
-                                    url=f"https://www.reddit.com{post.get('permalink', '')}",
-                                    alternateName=post.get('id', ''),
-                                    additionalType='reddit'
-                                )
-                                document.save()
-                                saved_count += 1
-                        else:
-                            post = entry.get('data', {})
-                            text = post.get('selftext', '')
-                            if not text:
-                                text = post.get('title', '')
-                            document = Document(
-                                identifier=str(uuid.uuid4()),
-                                text=text,
-                                datePublished=datetime.utcfromtimestamp(post.get('created_utc')).strftime('%Y-%m-%d'),
-                                dateCreated=timezone.now().date(),
-                                author=post.get('author', 'Unknown'),
-                                url=f"https://www.reddit.com{post.get('permalink', '')}",
-                                alternateName=post.get('id', ''),
-                                additionalType='reddit'
-                            )
-                            document.save()
-                            saved_count += 1
-
-
-                    elif platform == 'newsapi':
-                        if 'articles' in entry:
-                            articles = entry['articles']
-                            for article in articles:
-                                document = Document(
-                                    identifier=str(uuid.uuid4()),
-                                    text=article.get('content', ''),
-                                    datePublished=article.get('publishedAt', '').split('T')[0],
-                                    dateCreated=timezone.now().date(),
-                                    author=article.get('author', 'Unknown'),
-                                    url=article.get('url', ''),
-                                    alternateName=article.get('source', {}).get('name', 'Unknown'),
-                                    additionalType='newsapi'
-                                )
-                                document.save()
-                                saved_count += 1
-                        else:
-                            document = Document(
-                                identifier=str(uuid.uuid4()),
-                                text=entry.get('content', ''),
-                                datePublished=entry.get('publishedAt', '').split('T')[0],
-                                dateCreated=timezone.now().date(),
-                                author=entry.get('author', 'Unknown'),
-                                url=entry.get('url', ''),
-                                alternateName=entry.get('source', {}).get('name', 'Unknown'),
-                                additionalType='newsapi'
-                            )
-                            document.save()
-                            saved_count += 1
-
-                except Exception as e:
-                    continue
-
-        if saved_count > 0:
-            return Response({'message': f'Successfully saved {saved_count} posts.'}, status=201)
-        else:
-            return Response({'error': 'No posts were saved.'}, status=400)
-
+            if saved_count > 0:
+                return Response({'message': f'Successfully saved {saved_count} posts.'}, status=201)
+            else:
+                return Response({'error': 'No posts were saved.'}, status=400)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+        
+        
 class AddDocumentFromParamsView(APIView):
     def post(self, request, *args, **kwargs):
         text = request.POST.get('text')
         author = request.POST.get('author')
-        datePublished = request.POST.get('datePublished')
+        date_published = request.POST.get('datePublished')
 
-        if not all([text, author, datePublished]):
+        if not all([text, author, date_published]):
             return Response({'error': 'Text, Author and Date Published are required fields.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            document = Document(
-                identifier=str(uuid.uuid4()),
-                text=text,
-                datePublished=datePublished,  
-                dateCreated=timezone.now().date(),
-                author=author,
-                url=request.POST.get('url', ''),
-                alternateName=request.POST.get('alternateName', ''),
-                additionalType=request.POST.get('additionalType', '')
-            )
-            document.save()
-            return Response({'message': 'Document saved successfully.'}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        url = request.POST.get('url', '')
+        alternate_name = request.POST.get('alternateName', '')
+        additional_type = request.POST.get('additionalType', '')
+
+        success, message = save_document_from_params(text, author, date_published, url, alternate_name, additional_type)
+
+        if success:
+            return Response({'message': message}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DocumentDetailView(APIView):

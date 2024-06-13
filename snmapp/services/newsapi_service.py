@@ -7,28 +7,26 @@ from django.utils import timezone
 
 NEWSAPI_BASE_URL = 'https://newsapi.org/v2/everything'
 
-def newsapi_query_search(apiKey, q, from_date='', to_date='', pageSize=''):
+def newsapi_query_search(apiKey, query, from_date=None, to_date=None, limit=10):
+    endpoint = f'{NEWSAPI_BASE_URL}/everything'
     params = {
         'apiKey': apiKey,
-        'q': q,
+        'q': query,
         'from': from_date,
         'to': to_date,
-        'pageSize': pageSize
+        'pageSize': limit
     }
-    
-    params = {key: value for key, value in params.items() if value}
-    headers = {}
-    response = requests.get(NEWSAPI_BASE_URL, params=params, headers=headers)
+    response = requests.get(endpoint, params=params)
     response.raise_for_status()
     return response.json()
 
-def search_newsapi_posts(apiKey, query, limit, from_date=None, to_date=None):
+def search_newsapi_posts(query, limit, token, from_date=None, to_date=None):
     if not query:
         raise ValueError('No query provided for NewsAPI search')
-    if not apiKey:
+    if not token:
         raise ValueError('NewsAPI token is required')
 
-    posts = newsapi_query_search(apiKey, query, from_date, to_date, limit)
+    posts = newsapi_query_search(token, query, from_date, to_date, limit)
     filtered_posts = filter_newsapi_posts(posts.get('articles', []), from_date, to_date)
     save_newsapi_posts(filtered_posts, query)
     return filtered_posts

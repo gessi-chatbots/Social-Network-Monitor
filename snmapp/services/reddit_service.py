@@ -10,17 +10,10 @@ from django.utils import timezone
 REDDIT_BASE_URL = 'https://oauth.reddit.com'
 
 
-def reddit_query_search(query, subreddit='all', limit=10, sort='', token=None):
-    endpoint = f'{REDDIT_BASE_URL}/r/{subreddit}/search'
-    params = {
-        'q': query,
-        'limit': limit,
-        'sort': sort,
-    }
-    headers = {
-        'Authorization': f'bearer {token}',  
-        'User-Agent': 'ChangeMeClient/0.1 by YourUsername'  
-    }
+def reddit_query_search(query, limit=10, token=None):
+    endpoint = f'{REDDIT_BASE_URL}/search.json'
+    params = {'q': query, 'limit': limit}
+    headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(endpoint, params=params, headers=headers)
     response.raise_for_status()
     return response.json()

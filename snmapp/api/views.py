@@ -32,6 +32,11 @@ class SearchPostsView(APIView):
 
         if platform not in ['mastodon', 'reddit', 'newsapi', 'local']:
             return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if not query:
+            return Response({'error': 'No query provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if platform != 'local' and not token:
+            return Response({'error': f'Token is required for {platform.capitalize()} search'}, status=status.HTTP_400_BAD_REQUEST)
+
 
         if platform == 'local':
             return self.search_local(query, limit, from_date, to_date)

@@ -5,6 +5,7 @@ from snmapp.api.serializer import DocumentSerializer
 from snmapp.services.mastodon_service import mastodon_query_search as mastodon_query_search
 from snmapp.services.reddit_service import reddit_search as reddit_search, reddit_access_token as reddit_access_token
 from snmapp.services.newsapi_service import newsapi_search as newsapi_search
+from snmapp.services.local_service import get_document as get_document, update_document as update_document, delete_document as delete_document
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -435,23 +436,16 @@ class AddDocumentFromParamsView(APIView):
 class DocumentDetailView(APIView):
     def get(self, request, identifier, *args, **kwargs):
         try:
-            document = Document.objects.get(identifier=identifier)
+            document = get_document(identifier)
             serializer = DocumentSerializer(document)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except Document.DoesNotExist:
-            return Response({'error': f'Document with identifier: {identifier} not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def put(self, request, identifier, *args, **kwargs):
         try:
-            document = Document.objects.get(identifier=identifier)
             updated_data = request.data
-            allowed_fields = ['text', 'datePublished', 'url', 'author', 'alternateName', 'additionalType']
-            for field in allowed_fields:
-                if field in updated_data:
-                    setattr(document, field, updated_data[field])
-            document.save()
+            update_document(identifier, updated_data)
             return Response({'message': f'Document with identifier: {identifier} updated successfully.'}, status=status.HTTP_200_OK)
         except Document.DoesNotExist:
             return Response({'error': f'Document with identifier: {identifier} not found.'}, status=status.HTTP_404_NOT_FOUND)
@@ -460,8 +454,7 @@ class DocumentDetailView(APIView):
 
     def delete(self, request, identifier, *args, **kwargs):
         try:
-            document = Document.objects.get(identifier=identifier)
-            document.delete()
+            delete_document(identifier)
             return Response({'message': f'Document with identifier: {identifier} deleted successfully.'}, status=status.HTTP_200_OK)
         except Document.DoesNotExist:
             return Response({'error': f'Document with identifier: {identifier} not found.'}, status=status.HTTP_404_NOT_FOUND)

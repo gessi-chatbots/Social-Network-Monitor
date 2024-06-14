@@ -6,7 +6,23 @@ from uuid import uuid4
 from django.utils import timezone
 from snmapp.models import Document
 from django.db import IntegrityError
+from rest_framework.response import Response
+from snmapp.api.serializer import DocumentSerializer
 
+
+def search_local(query, limit, from_date=None, to_date=None):
+    filters = {}
+
+    if query:
+        filters['text__icontains'] = query
+    if from_date:
+        filters['datePublished__gte'] = from_date
+    if to_date:
+        filters['datePublished__lte'] = to_date
+
+    documents = Document.objects.filter(**filters)[:limit]
+    serializer = DocumentSerializer(documents, many=True)
+    return Response(serializer.data, status=200)
 
 def get_document(identifier):
     return get_object_or_404(Document, identifier=identifier)

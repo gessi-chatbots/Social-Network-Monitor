@@ -2,18 +2,16 @@ from django.http import JsonResponse
 from rest_framework import viewsets
 from snmapp.models import Document
 from snmapp.api.serializer import DocumentSerializer
-from snmapp.services.mastodon_service import mastodon_query_search, filter_mastodon_posts, save_mastodon_posts, save_posts_json_mastodon, search_mastodon_posts
-from snmapp.services.reddit_service import reddit_query_search, reddit_access_token, filter_reddit_posts, save_reddit_posts, save_posts_json_reddit, search_reddit_posts
-from snmapp.services.newsapi_service import newsapi_query_search, filter_newsapi_posts, save_newsapi_posts, save_articles_json_newsapi, search_newsapi_posts
-from snmapp.services.local_service import get_document, update_document, delete_document, save_document_from_params
+from snmapp.services.mastodon_service import save_posts_json_mastodon, search_mastodon_posts
+from snmapp.services.reddit_service import reddit_access_token, save_posts_json_reddit, search_reddit_posts
+from snmapp.services.newsapi_service import save_articles_json_newsapi, search_newsapi_posts
+from snmapp.services.local_service import get_document, update_document, delete_document, save_document_from_params, search_local
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-import uuid
-from django.utils import timezone
-from django.db import IntegrityError
-from datetime import datetime
-from bs4 import BeautifulSoup
+import requests
+
+
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -37,33 +35,26 @@ class SearchPostsView(APIView):
         if platform != 'local' and not token:
             return Response({'error': f'Token is required for {platform.capitalize()} search'}, status=status.HTTP_400_BAD_REQUEST)
 
-
-        if platform == 'local':
-            return self.search_local(query, limit, from_date, to_date)
-        elif platform == 'mastodon':
-            filtered_posts = search_mastodon_posts(query, limit, token, from_date, to_date)
-        elif platform == 'reddit':
-            filtered_posts = search_reddit_posts(query, limit, token, from_date, to_date)
-        elif platform == 'newsapi':
-            filtered_posts = search_newsapi_posts(query, limit, token, from_date, to_date)
-        else:
-            return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if platform == 'local':
+                return search_local(query, limit, from_date, to_date)
+            elif platform == 'mastodon':
+                filtered_posts = search_mastodon_posts(query, limit, token, from_date, to_date)
+            elif platform == 'reddit':
+                filtered_posts = search_reddit_posts(query, limit, token, from_date, to_date)
+            elif platform == 'newsapi':
+                filtered_posts = search_newsapi_posts(query, limit, token, from_date, to_date)
+            else:
+                return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except ValueError as ve:
+            return Response({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except requests.HTTPError as he:
+            return Response({'error': str(he)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(filtered_posts, status=status.HTTP_200_OK)
-    
-    def search_local(self, query, limit, from_date=None, to_date=None):
-        filters = {}
-
-        if query:
-            filters['text__icontains'] = query
-        if from_date:
-            filters['datePublished__gte'] = from_date
-        if to_date:
-            filters['datePublished__lte'] = to_date
-
-        documents = Document.objects.filter(**filters)[:limit]
-        serializer = DocumentSerializer(documents, many=True)
-        return Response(serializer.data, status=200)
 
 
 class RedditAccessTokenView(APIView):

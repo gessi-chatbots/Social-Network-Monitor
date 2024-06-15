@@ -3,8 +3,8 @@ from rest_framework import viewsets
 from snmapp.models import Document
 from snmapp.api.serializer import DocumentSerializer
 from snmapp.services.mastodon_service import MastodonService
-from snmapp.services.reddit_service import reddit_access_token, save_posts_json_reddit, search_reddit_posts
-from snmapp.services.newsapi_service import save_articles_json_newsapi, search_newsapi_posts
+from snmapp.services.reddit_service import RedditService
+from snmapp.services.newsapi_service import NewsAPIService
 from snmapp.services.local_service import get_document, update_document, delete_document, save_document_from_params, search_local
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -40,9 +40,9 @@ class SearchPostsView(APIView):
             elif platform == 'mastodon':
                 service = MastodonService()
             elif platform == 'reddit':
-                filtered_posts = search_reddit_posts(query, limit, token, from_date, to_date)
+                service = RedditService()
             elif platform == 'newsapi':
-                filtered_posts = search_newsapi_posts(query, limit, token, from_date, to_date)
+                service = NewsAPIService()
             else:
                 return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -55,10 +55,16 @@ class SearchPostsView(APIView):
         
         posts = service.search_posts(query, limit, token, from_date, to_date)
         filtered_posts = service.filter_posts(posts, from_date, to_date)
-        service.save_posts(filtered_posts, query)
+        saved_count = service.save_posts(filtered_posts, query)
+        
+        if saved_count > 0:
+            message = f"Number of saved posts: {saved_count}"
+        else:
+            message = f"No posts were saved"
 
-        return Response(filtered_posts, status=status.HTTP_200_OK)
-
+        response = Response({ 'Message': message, 'Posts': filtered_posts }, status=status.HTTP_200_OK)
+        return response
+    
 
 class RedditAccessTokenView(APIView):
     def post(self, request):
@@ -72,7 +78,8 @@ class RedditAccessTokenView(APIView):
             return Response({'error': 'Missing grant_type, username, password, client_id, or client_secret'}, status=400)
 
         try:
-            access_token = reddit_access_token(grant_type, username, password, client_id, client_secret)
+            service = RedditService()
+            access_token = service.reddit_access_token(grant_type, username, password, client_id, client_secret)
             return Response({'access_token': access_token}, status=200)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -93,11 +100,13 @@ class AddDocumentFromJSONView(APIView):
 
             if platform == 'mastodon':
                 service = MastodonService()
-                saved_count = service.save_posts_json_mastodon(data)
+                saved_count = service.save_posts_json(data)
             elif platform == 'reddit':
-                saved_count = save_posts_json_reddit(data)
+                service = RedditService()
+                saved_count = service.save_posts_json(data)
             elif platform == 'newsapi':
-                saved_count = save_articles_json_newsapi(data)
+                service = NewsAPIService()
+                saved_count = service.save_posts_json(data)
 
             if saved_count > 0:
                 return Response({'message': f'Successfully saved {saved_count} posts.'}, status=201)

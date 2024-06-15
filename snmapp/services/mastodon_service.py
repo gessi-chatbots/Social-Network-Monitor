@@ -44,6 +44,8 @@ class MastodonService(ServiceInterface):
         return filtered_posts
 
     def save_posts(self, posts, additional_type):
+        saved_count = 0
+
         for post in posts:
             html_content = post.get('content', '')
             content = BeautifulSoup(html_content, 'html.parser').get_text()
@@ -60,10 +62,13 @@ class MastodonService(ServiceInterface):
             )
             try:
                 document.save()
+                saved_count += 1
             except IntegrityError:
                 continue
+            
+        return saved_count
 
-    def save_posts_json_mastodon(self, data, platform):
+    def save_posts_json(self, data):
         saved_count = 0
         entries = []
 
@@ -74,39 +79,38 @@ class MastodonService(ServiceInterface):
 
         for entry in entries:
             try:
-                if platform == 'mastodon':
-                    if 'statuses' in entry:
-                        statuses = entry['statuses']
-                        for post in statuses:
-                            html_content = post.get('content', '')
-                            content = BeautifulSoup(html_content, 'html.parser').get_text()
-                            document = Document(
-                                identifier=str(uuid.uuid4()),
-                                text=content,
-                                datePublished=post.get('created_at', '').split('T')[0],
-                                dateCreated=timezone.now().date(),
-                                author=post.get('account', {}).get('username', 'Unknown'),
-                                url=post.get('url', ''),
-                                alternateName=post.get('id', ''),
-                                additionalType='mastodon'
-                            )
-                            document.save()
-                            saved_count += 1
-                    else:
-                        html_content = entry.get('content', '')
+                if 'statuses' in entry:
+                    statuses = entry['statuses']
+                    for post in statuses:
+                        html_content = post.get('content', '')
                         content = BeautifulSoup(html_content, 'html.parser').get_text()
                         document = Document(
                             identifier=str(uuid.uuid4()),
-                            text=entry.get('content', ''),
-                            datePublished=entry.get('created_at', '').split('T')[0],
+                            text=content,
+                            datePublished=post.get('created_at', '').split('T')[0],
                             dateCreated=timezone.now().date(),
-                            author=entry.get('account', {}).get('username', 'Unknown'),
-                            url=entry.get('url', ''),
-                            alternateName=entry.get('id', ''),
+                            author=post.get('account', {}).get('username', 'Unknown'),
+                            url=post.get('url', ''),
+                            alternateName=post.get('id', ''),
                             additionalType='mastodon'
                         )
                         document.save()
                         saved_count += 1
+                else:
+                    html_content = entry.get('content', '')
+                    content = BeautifulSoup(html_content, 'html.parser').get_text()
+                    document = Document(
+                        identifier=str(uuid.uuid4()),
+                        text=entry.get('content', ''),
+                        datePublished=entry.get('created_at', '').split('T')[0],
+                        dateCreated=timezone.now().date(),
+                        author=entry.get('account', {}).get('username', 'Unknown'),
+                        url=entry.get('url', ''),
+                        alternateName=entry.get('id', ''),
+                        additionalType='mastodon'
+                    )
+                    document.save()
+                    saved_count += 1
 
             except Exception as e:
                 continue

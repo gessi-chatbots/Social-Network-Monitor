@@ -57,7 +57,9 @@ class SearchPostsView(APIView):
         filtered_posts = service.filter_posts(posts, from_date, to_date)
         saved_count = service.save_posts(filtered_posts)
 
-        return Response(f"Number of saved posts: {saved_count}", filtered_posts, status=status.HTTP_200_OK)
+        message = f"Number of saved posts: {saved_count}"
+        response = Response({ 'Message': message, 'Posts': filtered_posts }, status=status.HTTP_200_OK)
+        return response
 
 
 class RedditAccessTokenView(APIView):

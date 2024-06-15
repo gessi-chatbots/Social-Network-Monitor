@@ -55,7 +55,7 @@ class SearchPostsView(APIView):
         
         posts = service.search_posts(query, limit, token, from_date, to_date)
         filtered_posts = service.filter_posts(posts, from_date, to_date)
-        service.save_posts(filtered_posts)
+        service.save_posts(filtered_posts, query)
 
         return Response(filtered_posts, status=status.HTTP_200_OK)
 

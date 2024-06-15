@@ -55,11 +55,9 @@ class SearchPostsView(APIView):
         
         posts = service.search_posts(query, limit, token, from_date, to_date)
         filtered_posts = service.filter_posts(posts, from_date, to_date)
-        saved_count = service.save_posts(filtered_posts)
+        service.save_posts(filtered_posts)
 
-        message = f"Number of saved posts: {saved_count}"
-        response = Response({ 'Message': message, 'Posts': filtered_posts }, status=status.HTTP_200_OK)
-        return response
+        return Response(filtered_posts, status=status.HTTP_200_OK)
 
 
 class RedditAccessTokenView(APIView):
@@ -95,7 +93,7 @@ class AddDocumentFromJSONView(APIView):
 
             if platform == 'mastodon':
                 service = MastodonService()
-                saved_count = service.save_posts(data)
+                saved_count = service.save_posts_json_mastodon(data)
             elif platform == 'reddit':
                 saved_count = save_posts_json_reddit(data)
             elif platform == 'newsapi':

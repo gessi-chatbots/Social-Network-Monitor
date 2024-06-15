@@ -25,7 +25,7 @@ class MastodonService(ServiceInterface):
             logger.error(f"Failed to fetch posts from Mastodon: {e}")
             raise
 
-    def filter_posts(posts, from_date=None, to_date=None):
+    def filter_posts(self, posts, from_date=None, to_date=None):
         filtered_posts = []
 
         if from_date:
@@ -43,7 +43,7 @@ class MastodonService(ServiceInterface):
 
         return filtered_posts
 
-    def save_posts(posts, additional_type):
+    def save_posts(self, posts, additional_type):
         for post in posts:
             html_content = post.get('content', '')
             content = BeautifulSoup(html_content, 'html.parser').get_text()
@@ -63,7 +63,7 @@ class MastodonService(ServiceInterface):
             except IntegrityError:
                 continue
 
-    def save_posts_json_mastodon(data, platform):
+    def save_posts_json_mastodon(self, data, platform):
         saved_count = 0
         entries = []
 

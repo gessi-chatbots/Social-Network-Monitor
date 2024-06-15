@@ -13,3 +13,7 @@ class ServiceInterface(ABC):
     @abstractmethod
     def save_posts(self, posts):
         pass
+    
+    @abstractmethod
+    def save_posts_json_mastodon(self, data, platform):
+        pass

@@ -11,11 +11,11 @@ from snmapp.interfaces.service_interface import ServiceInterface
 logger = logging.getLogger(__name__)
 
 class NewsAPIService(ServiceInterface):
-    def search_posts(self, apiKey, query, from_date=None, to_date=None, limit=10):
+    def search_posts(self, query, limit, token, from_date=None, to_date=None):
         try:
             endpoint = f'https://newsapi.org/v2/everything'
             params = {
-                'apiKey': apiKey,
+                'apiKey': token,
                 'q': query,
                 'from': from_date,
                 'to': to_date,

@@ -23,7 +23,7 @@ class RedditService(ServiceInterface):
             children = [post.get('data') for post in posts.get('data', {}).get('children', [])]
             return children
         except requests.RequestException as e:
-            logger.error(f"Failed to fetch posts from Mastodon: {e}")
+            logger.error(f"Failed to fetch posts from Reddit: {e}")
             raise
 
     def reddit_access_token(self, grant_type, username, password, client_id, client_secret):
@@ -61,6 +61,7 @@ class RedditService(ServiceInterface):
 
     def save_posts(self, posts, additional_type):
         saved_count = 0
+        
         for post in posts:
             data = post
             date_published = datetime.fromtimestamp(data.get('created', ''))

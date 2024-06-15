@@ -43,28 +43,28 @@ class SearchPostsView(APIView):
                 service = RedditService()
             elif platform == 'newsapi':
                 service = NewsAPIService()
-            else:
-                return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        except ValueError as ve:
-            return Response({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
-        except requests.HTTPError as he:
-            return Response({'error': str(he)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        posts = service.search_posts(query, limit, token, from_date, to_date)
-        filtered_posts = service.filter_posts(posts, from_date, to_date)
-        saved_count = service.save_posts(filtered_posts, query)
-        
-        if saved_count > 0:
-            message = f"Number of saved posts: {saved_count}"
-        else:
-            message = f"No posts were saved"
 
-        response = Response({ 'Message': message, 'Posts': filtered_posts }, status=status.HTTP_200_OK)
-        return response
-    
+        except ValueError as ve:
+            return JsonResponse({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except requests.exceptions.HTTPError as he:
+            return JsonResponse({'error': str(he), 'details': he.response.text}, status=he.response.status_code)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            posts = service.search_posts(query, limit, token, from_date, to_date)
+            filtered_posts = service.filter_posts(posts, from_date, to_date)
+            saved_count = service.save_posts(filtered_posts, query)
+            
+            if saved_count > 0:
+                message = f"Number of saved posts: {saved_count}"
+            else:
+                message = f"No posts were saved"
+
+            response = JsonResponse({'Message': message, 'Posts': filtered_posts}, status=status.HTTP_200_OK)
+            return response
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class RedditAccessTokenView(APIView):
     def post(self, request):

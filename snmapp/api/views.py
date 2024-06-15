@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from rest_framework import viewsets
 from snmapp.models import Document
 from snmapp.api.serializer import DocumentSerializer
-from snmapp.services.mastodon_service import save_posts_json_mastodon, search_mastodon_posts
+from snmapp.services.mastodon_service import MastodonService
 from snmapp.services.reddit_service import reddit_access_token, save_posts_json_reddit, search_reddit_posts
 from snmapp.services.newsapi_service import save_articles_json_newsapi, search_newsapi_posts
 from snmapp.services.local_service import get_document, update_document, delete_document, save_document_from_params, search_local
@@ -10,7 +10,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import requests
-
 
 
 
@@ -39,7 +38,7 @@ class SearchPostsView(APIView):
             if platform == 'local':
                 return search_local(query, limit, from_date, to_date)
             elif platform == 'mastodon':
-                filtered_posts = search_mastodon_posts(query, limit, token, from_date, to_date)
+                service = MastodonService()
             elif platform == 'reddit':
                 filtered_posts = search_reddit_posts(query, limit, token, from_date, to_date)
             elif platform == 'newsapi':
@@ -53,8 +52,12 @@ class SearchPostsView(APIView):
             return Response({'error': str(he)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        posts = service.search_posts(query, limit, token, from_date, to_date)
+        filtered_posts = service.filter_posts(posts, from_date, to_date)
+        saved_count = service.save_posts(filtered_posts)
 
-        return Response(filtered_posts, status=status.HTTP_200_OK)
+        return Response(f"Number of saved posts: {saved_count}", filtered_posts, status=status.HTTP_200_OK)
 
 
 class RedditAccessTokenView(APIView):
@@ -89,7 +92,8 @@ class AddDocumentFromJSONView(APIView):
             saved_count = 0
 
             if platform == 'mastodon':
-                saved_count = save_posts_json_mastodon(data)
+                service = MastodonService()
+                saved_count = service.save_posts(data)
             elif platform == 'reddit':
                 saved_count = save_posts_json_reddit(data)
             elif platform == 'newsapi':

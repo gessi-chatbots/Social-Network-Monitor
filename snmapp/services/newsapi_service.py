@@ -47,6 +47,8 @@ class NewsAPIService(ServiceInterface):
         return filtered_posts
 
     def save_posts(self, posts, additional_type):
+        saved_count = 0
+        
         for post in posts:
             author = post.get('author', 'Unknown')
             if author is None or author.startswith('https'):
@@ -64,8 +66,11 @@ class NewsAPIService(ServiceInterface):
             )
             try:
                 document.save()
+                saved_count += 1
             except IntegrityError:
                 continue
+            
+        return saved_count
 
     def save_posts_json(self, data):
         saved_count = 0

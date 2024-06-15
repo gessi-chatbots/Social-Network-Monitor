@@ -17,3 +17,7 @@ class ServiceInterface(ABC):
     @abstractmethod
     def save_posts_json(self, data):
         pass
+    
+    @abstractmethod
+    def reddit_access_token(grant_type, username, password, client_id, client_secret):
+        pass

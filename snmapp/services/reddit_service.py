@@ -19,12 +19,14 @@ class RedditService(ServiceInterface):
             headers = {'Authorization': f'Bearer {token}'}
             response = requests.get(endpoint, params=params, headers=headers)
             response.raise_for_status()
-            return response.json()
+            posts = response.json()
+            children = [post.get('data') for post in posts.get('data', {}).get('children', [])]
+            return children
         except requests.RequestException as e:
-            logger.error(f"Failed to fetch posts from Reddit: {e}")
+            logger.error(f"Failed to fetch posts from Mastodon: {e}")
             raise
 
-    def reddit_access_token(grant_type, username, password, client_id, client_secret):
+    def reddit_access_token(self, grant_type, username, password, client_id, client_secret):
         url = "https://www.reddit.com/api/v1/access_token"
         headers = {
             "User-Agent": "PostmanRuntime/7.39.0"  
@@ -57,7 +59,8 @@ class RedditService(ServiceInterface):
 
         return filtered_posts
 
-    def save_posts(posts, additional_type):
+    def save_posts(self, posts, additional_type):
+        saved_count = 0
         for post in posts:
             data = post
             date_published = datetime.fromtimestamp(data.get('created', ''))
@@ -76,10 +79,13 @@ class RedditService(ServiceInterface):
             )
             try:
                 document.save()
+                saved_count += 1
             except IntegrityError:
                 continue
             
-    def save_posts_json(self, data):
+        return saved_count
+            
+    def save_posts_json(data):
         saved_count = 0
         entries = []
 

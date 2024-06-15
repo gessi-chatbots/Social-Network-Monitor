@@ -23,7 +23,7 @@ class NewsAPIService(ServiceInterface):
             }
             response = requests.get(endpoint, params=params)
             response.raise_for_status()
-            return response.json()
+            return response.json().get('articles', [])
         except requests.RequestException as e:
             logger.error(f"Failed to fetch posts from NewsAPI: {e}")
             raise

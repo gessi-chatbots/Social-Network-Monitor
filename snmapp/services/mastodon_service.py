@@ -120,3 +120,6 @@ class MastodonService(ServiceInterface):
     def mastodon_async_search(query, limit, token):
         mastodon = Mastodon(access_token=token, api_base_url='https://mastodon.social')
         return mastodon.search_v2(q=query, limit=limit, resolve=True)
+    
+    def reddit_access_token(self, grant_type, username, password, client_id, client_secret):
+        pass

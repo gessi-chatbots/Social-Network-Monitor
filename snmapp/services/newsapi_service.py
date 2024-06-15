@@ -98,3 +98,6 @@ class NewsAPIService(ServiceInterface):
                 continue
 
         return saved_count
+    
+    def reddit_access_token(self, grant_type, username, password, client_id, client_secret):
+        pass

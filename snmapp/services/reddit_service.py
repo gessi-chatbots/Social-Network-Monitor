@@ -86,7 +86,7 @@ class RedditService(ServiceInterface):
             
         return saved_count
             
-    def save_posts_json(data):
+    def save_posts_json(self, data):
         saved_count = 0
         entries = []
 

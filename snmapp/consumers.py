@@ -26,7 +26,6 @@ class MastodonConsumer(AsyncWebsocketConsumer):
         self.token = self.scope['url_route']['kwargs']['token']
         await self.accept()
 
-        # Start a task to fetch posts continuously
         self.listener_task = asyncio.create_task(self.fetch_posts())
 
     async def disconnect(self, close_code):

@@ -1,0 +1,32 @@
+{
+  "q": [
+    "AI software",
+    "AI tool",
+    "AI platform",
+    "AI application",
+    "AI software",
+    "AI-powered app",
+    "AI product",
+    "AI technology",
+    "AI service",
+    "AI solution",
+    "AI analytics",
+    "AI assistant",
+    "AI chatbot",
+    "AI model",
+    "AI system",
+    "AI framework",
+    "AI SDK",
+    "AI library",
+    "AI API",
+    "AI development",
+    "AI research",
+    "AI innovation"
+  ]
+
+ "limit": 100
+
+ "from" : 2024-06-01
+
+ "to": 2024-06-20 
+}

@@ -8,6 +8,7 @@ from mastodon import Mastodon
 from snmapp.models import Document
 from snmapp.interfaces.service_interface import ServiceInterface
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +44,18 @@ class MastodonService(ServiceInterface):
 
         return filtered_posts
 
+    def clean_text(text):
+        return re.sub(r'[^\x00-\x7F]+', '', text)
+
     def save_posts(self, posts, additional_type):
         saved_count = 0
 
         for post in posts:
             html_content = post.get('content', '')
             content = BeautifulSoup(html_content, 'html.parser').get_text()
-            
+
+            content = self.clean_text(content)
+
             document = Document(
                 identifier=str(uuid.uuid4()),
                 text=content,
@@ -65,7 +71,7 @@ class MastodonService(ServiceInterface):
                 saved_count += 1
             except IntegrityError:
                 continue
-            
+
         return saved_count
 
     def save_posts_json(self, data):

@@ -91,6 +91,10 @@ class SearchPostsView(APIView):
             if platform == 'mastodon':
                 service = MastodonService()
                 service_name = 'Mastodon'
+            elif platform == 'reddit':
+                service = RedditService()
+                service_name = 'Reddit'
+
         except ValueError as ve:
             return JsonResponse({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except requests.exceptions.HTTPError as he:

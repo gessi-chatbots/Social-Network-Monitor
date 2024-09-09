@@ -80,6 +80,10 @@ class SearchPostsView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         if not request.data:
             return Response({'error': 'Payload is required in the request body'}, status=status.HTTP_400_BAD_REQUEST)
+        if request.data.get('applicationName', None) is None:
+            return Response({'error': 'No application name provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if request.data.get('category', None) is None:
+            return Response({'error': 'No category name provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             if platform == 'mastodon':
@@ -93,8 +97,13 @@ class SearchPostsView(APIView):
             return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
-            posts = service.search_posts(limit, token, from_date, to_date)
-            saved_count = service.save_posts(posts)
+            query = request.data.get('applicationName')
+            if query is None:
+                return Response({'error': 'No query provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+            posts = service.search_posts(query, limit, token, from_date, to_date)
+            category = request.data.get('category')
+            saved_count = service.save_posts(posts=posts, additional_type=None, category=category)
 
             if saved_count > 0:
                 message = f"Number of saved posts: {saved_count}"

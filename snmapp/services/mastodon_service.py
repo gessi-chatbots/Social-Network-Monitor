@@ -14,21 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class MastodonService(ServiceInterface):
-
-    def search_posts(self, application_name, category, limit, token, from_date=None, to_date=None):
+    def search_posts(self, query, limit, token, from_date=None, to_date=None):
         try:
-            endpoint = 'https://mastodon.social/api/v2/search'
-            payload = {
-                'applicationName': application_name,
-                'Category': category
-            }
-            params = {'limit': limit}
-            headers = {
-                'Authorization': f'Bearer {token}',
-                'Content-Type': 'application/json'
-            }
-
-            response = requests.post(endpoint, json=payload, params=params, headers=headers)
+            endpoint = f'https://mastodon.social/api/v2/search'
+            params = {'q': query, 'type': 'statuses', 'limit': limit}
+            headers = {'Authorization': f'Bearer {token}'}
+            response = requests.get(endpoint, params=params, headers=headers)
             response.raise_for_status()
             return response.json().get('statuses', [])
         except requests.RequestException as e:
@@ -53,8 +44,7 @@ class MastodonService(ServiceInterface):
 
         return filtered_posts
 
-
-    def save_posts(self, posts, additional_type):
+    def save_posts(self, posts, additional_type, category):
         saved_count = 0
 
         for post in posts:
@@ -71,7 +61,8 @@ class MastodonService(ServiceInterface):
                 author=post.get('account', {}).get('username', 'Unknown'),
                 url=post.get('url', ''),
                 alternateName=post.get('id', ''),
-                additionalType=additional_type
+                additionalType=additional_type,
+                categoryType=category
             )
             try:
                 document.save()
@@ -136,6 +127,6 @@ class MastodonService(ServiceInterface):
     def mastodon_async_search(query, limit, token):
         mastodon = Mastodon(access_token=token, api_base_url='https://mastodon.social')
         return mastodon.search_v2(q=query, limit=limit, resolve=True)
-    
+
     def reddit_access_token(self, grant_type, username, password, client_id, client_secret):
         pass

@@ -66,6 +66,47 @@ class SearchPostsView(APIView):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def post(self, request, *args, **kwargs):
+        platform = request.GET.get('platform')
+        limit = int(request.GET.get('limit', 1))
+        token = request.GET.get('token')
+        from_date = request.GET.get('from')
+        to_date = request.GET.get('to')
+
+        if platform not in ['mastodon', 'reddit', 'newsapi', 'local']:
+            return Response({'error': 'Invalid platform provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if platform != 'local' and not token:
+            return Response({'error': f'Token is required for {platform.capitalize()} search'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not request.data:
+            return Response({'error': 'Payload is required in the request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if platform == 'mastodon':
+                service = MastodonService()
+
+        except ValueError as ve:
+            return JsonResponse({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except requests.exceptions.HTTPError as he:
+            return JsonResponse({'error': str(he), 'details': he.response.text}, status=he.response.status_code)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            posts = service.search_posts(limit, token, from_date, to_date)
+            saved_count = service.save_posts(posts)
+
+            if saved_count > 0:
+                message = f"Number of saved posts: {saved_count}"
+            else:
+                message = f"No posts were saved"
+
+            response = JsonResponse({'Message': message, 'Posts': posts}, status=status.HTTP_200_OK)
+            return response
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class RedditAccessTokenView(APIView):
     def post(self, request):
         grant_type = request.data.get('grant_type')

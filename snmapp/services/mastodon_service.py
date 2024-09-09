@@ -44,8 +44,6 @@ class MastodonService(ServiceInterface):
 
         return filtered_posts
 
-    def clean_text(text):
-        return re.sub(r'[^\x00-\x7F]+', '', text)
 
     def save_posts(self, posts, additional_type):
         saved_count = 0
@@ -54,7 +52,7 @@ class MastodonService(ServiceInterface):
             html_content = post.get('content', '')
             content = BeautifulSoup(html_content, 'html.parser').get_text()
 
-            content = self.clean_text(content)
+            content = self.clean_content(content)
 
             document = Document(
                 identifier=str(uuid.uuid4()),
@@ -73,6 +71,9 @@ class MastodonService(ServiceInterface):
                 continue
 
         return saved_count
+
+    def clean_content(self, content):
+        return re.sub(r'[^\x00-\x7F]+', '', content)
 
     def save_posts_json(self, data):
         saved_count = 0

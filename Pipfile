@@ -8,6 +8,7 @@ django = "*"
 pymysql = "*"
 django-environ = "*"
 django-requests = "*"
+pandas = "*"
 
 [dev-packages]
 

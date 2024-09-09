@@ -68,7 +68,7 @@ class SearchPostsView(APIView):
 
     def post(self, request, *args, **kwargs):
         platform = request.GET.get('platform')
-        limit = int(request.GET.get('limit', 1))
+        limit = int(request.GET.get('limit', None))
         token = request.GET.get('token')
         from_date = request.GET.get('from')
         to_date = request.GET.get('to')
@@ -88,7 +88,7 @@ class SearchPostsView(APIView):
         try:
             if platform == 'mastodon':
                 service = MastodonService()
-
+                service_name = 'Mastodon'
         except ValueError as ve:
             return JsonResponse({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except requests.exceptions.HTTPError as he:
@@ -103,7 +103,8 @@ class SearchPostsView(APIView):
 
             posts = service.search_posts(query, limit, token, from_date, to_date)
             category = request.data.get('category')
-            saved_count = service.save_posts(posts=posts, additional_type=query, category=category)
+
+            saved_count = service.save_posts(posts=posts, additional_type=query, plataform_name=service_name, category=category)
 
             if saved_count > 0:
                 message = f"Number of saved posts: {saved_count}"

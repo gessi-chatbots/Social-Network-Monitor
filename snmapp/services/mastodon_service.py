@@ -17,7 +17,10 @@ class MastodonService(ServiceInterface):
     def search_posts(self, query, limit, token, from_date=None, to_date=None):
         try:
             endpoint = f'https://mastodon.social/api/v2/search'
-            params = {'q': query, 'type': 'statuses', 'limit': limit}
+            if limit is None:
+                params = {'q': query, 'type': 'statuses'}
+            else:
+                params = {'q': query, 'type': 'statuses', 'limit': limit}
             headers = {'Authorization': f'Bearer {token}'}
             response = requests.get(endpoint, params=params, headers=headers)
             response.raise_for_status()
@@ -44,7 +47,7 @@ class MastodonService(ServiceInterface):
 
         return filtered_posts
 
-    def save_posts(self, posts, additional_type, category):
+    def save_posts(self, posts, additional_type, plataform_name, category):
         saved_count = 0
 
         for post in posts:
@@ -62,6 +65,7 @@ class MastodonService(ServiceInterface):
                 url=post.get('url', ''),
                 alternateName=post.get('id', ''),
                 additionalType=additional_type,
+                plataformName=plataform_name,
                 categoryType=category
             )
             try:

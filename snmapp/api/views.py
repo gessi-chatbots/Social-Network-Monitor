@@ -68,7 +68,9 @@ class SearchPostsView(APIView):
 
     def post(self, request, *args, **kwargs):
         platform = request.GET.get('platform')
-        limit = int(request.GET.get('limit', None))
+        limit = request.GET.get('limit', None)
+        if limit is not None:
+            limit = int(limit)
         token = request.GET.get('token')
         from_date = request.GET.get('from')
         to_date = request.GET.get('to')

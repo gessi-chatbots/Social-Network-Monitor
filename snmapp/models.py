@@ -11,7 +11,7 @@ class Document(models.Model):
     author = models.TextField(blank=True, null=True)
     alternateName = models.CharField(blank=True, null=True, max_length=255)
     additionalType = models.CharField(blank=True, null=True, max_length=255)
-
+    categoryType = models.CharField(blank=True, null=True, max_length=255)
     class Meta:
         constraints = [
             models.CheckConstraint(

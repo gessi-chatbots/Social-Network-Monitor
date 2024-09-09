@@ -22,7 +22,7 @@ class SearchPostsView(APIView):
     def get(self, request, *args, **kwargs):
         platform = request.GET.get('platform')
         query = request.GET.get('q')
-        limit = int(request.GET.get('limit', 10))
+        limit = int(request.GET.get('limit', 1))
         token = request.GET.get('token')
         from_date = request.GET.get('from')
         to_date = request.GET.get('to')

@@ -53,15 +53,15 @@ class SearchPostsView(APIView):
 
         try:
             posts = service.search_posts(query, limit, token, from_date, to_date)
-            filtered_posts = service.filter_posts(posts, from_date, to_date)
-            saved_count = service.save_posts(filtered_posts, query)
+            # filtered_posts = service.filter_posts(posts, from_date, to_date)
+            saved_count = service.save_posts(posts, query)
             
             if saved_count > 0:
                 message = f"Number of saved posts: {saved_count}"
             else:
                 message = f"No posts were saved"
 
-            response = JsonResponse({'Message': message, 'Posts': filtered_posts}, status=status.HTTP_200_OK)
+            response = JsonResponse({'Message': message, 'Posts': posts}, status=status.HTTP_200_OK)
             return response
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -47,7 +47,7 @@ class MastodonService(ServiceInterface):
 
         return filtered_posts
 
-    def save_posts(self, posts, additional_type, plataform_name, category):
+    def save_posts(self, posts, additional_type, platform_name, category):
         saved_count = 0
 
         for post in posts:
@@ -65,7 +65,7 @@ class MastodonService(ServiceInterface):
                 url=post.get('url', ''),
                 alternateName=post.get('id', ''),
                 additionalType=additional_type,
-                plataformName=plataform_name,
+                plataformName=platform_name,
                 categoryType=category
             )
             try:

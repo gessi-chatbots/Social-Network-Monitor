@@ -110,7 +110,7 @@ class SearchPostsView(APIView):
             posts = service.search_posts(query, limit, token, from_date, to_date)
             category = request.data.get('category')
 
-            saved_count = service.save_posts(posts=posts, additional_type=query, plataform_name=service_name, category=category)
+            saved_count = service.save_posts(posts=posts, additional_type=query, platform_name=service_name, category=category)
 
             if saved_count > 0:
                 message = f"Number of saved posts: {saved_count}"

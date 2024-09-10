@@ -59,7 +59,7 @@ class RedditService(ServiceInterface):
 
         return filtered_posts
 
-    def save_posts(self, posts, additional_type):
+    def save_posts(self, posts, additional_type, platform_name, category):
         saved_count = 0
         
         for post in posts:
@@ -76,7 +76,9 @@ class RedditService(ServiceInterface):
                 author=data.get('author', 'Unknown'),
                 url=f"https://www.reddit.com{data.get('permalink', '')}",
                 alternateName=data.get('id', ''),
-                additionalType=additional_type
+                additionalType=additional_type,
+                plataformName=platform_name,
+                categoryType=category
             )
             try:
                 document.save()

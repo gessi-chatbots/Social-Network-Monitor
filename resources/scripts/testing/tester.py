@@ -17,7 +17,6 @@ def process_requests(csv_file_path):
         application_name = row['Application Name']
         category = row['Category']
 
-        # Payload to be sent with requests
         payload = {
             'applicationName': application_name,
             'category': category
@@ -27,7 +26,6 @@ def process_requests(csv_file_path):
             'Content-Type': 'application/json'
         }
 
-        # Mastodon request
         mastodon_params = {
             'platform': 'mastodon',
             'token': mastodon_token
@@ -64,10 +62,8 @@ def process_requests(csv_file_path):
                 'error': str(e)
             })
 
-        # Add a delay between Mastodon and Reddit requests
-        time.sleep(5)
+        time.sleep(20)
 
-        # Reddit request
         reddit_params = {
             'platform': 'reddit',
             'token': reddit_token

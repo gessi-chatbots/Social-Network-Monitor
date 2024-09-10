@@ -3,6 +3,7 @@ from requests.auth import HTTPBasicAuth
 from datetime import datetime
 from snmapp.models import Document
 import uuid
+import re
 from django.db import IntegrityError
 from django.utils import timezone
 from snmapp.interfaces.service_interface import ServiceInterface
@@ -58,6 +59,8 @@ class RedditService(ServiceInterface):
                 continue
 
         return filtered_posts
+    def clean_content(self, content):
+        return re.sub(r'[^\x00-\x7F]+', '', content)
 
     def save_posts(self, posts, additional_type, platform_name, category):
         saved_count = 0
@@ -68,6 +71,7 @@ class RedditService(ServiceInterface):
             text = data.get('selftext', '')
             if not text:
                 text = data.get('title', '')
+            text = self.clean_content(text)
             document = Document(
                 identifier=str(uuid.uuid4()),
                 text=text,

@@ -87,7 +87,10 @@ class RedditService(ServiceInterface):
                 continue
             
         return saved_count
-            
+
+    def clean_content(self, content):
+        return re.sub(r'[^\x00-\x7F]+', '', content)
+
     def save_posts_json(self, data):
         saved_count = 0
         entries = []
@@ -106,6 +109,8 @@ class RedditService(ServiceInterface):
                         text = post.get('selftext', '')
                         if not text:
                             text = post.get('title', '')
+                        text = self.clean_content(text)
+
                         document = Document(
                             identifier=str(uuid.uuid4()),
                             text=text,

@@ -79,6 +79,8 @@ def send_reddit_request(base_url, payload, headers, reddit_token, application_na
         }
 
 
+
+
 def process_requests(csv_file_path):
     data = pd.read_csv(csv_file_path)
     responses = []
@@ -93,10 +95,9 @@ def process_requests(csv_file_path):
         category = row['Category']
 
         name_variants = [
-            application_name,
             application_name.lower(),
             application_name.title(),
-            f"#{application_name}"
+            f"#{application_name.replace(' ', '')}"
         ]
 
         for variant in name_variants:

@@ -1,7 +1,82 @@
 import pandas as pd
 import requests
-import json
 import time
+
+
+def send_mastodon_request(base_url, payload, headers, mastodon_token, application_name, category):
+    mastodon_params = {
+        'platform': 'mastodon',
+        'token': mastodon_token
+    }
+
+    try:
+        mastodon_response = requests.post(base_url, params=mastodon_params, json=payload, headers=headers)
+        mastodon_response_text = mastodon_response.text
+        if mastodon_response.status_code == 200:
+            print(f"Mastodon Success: {application_name}")
+            return {
+                'application_name': application_name,
+                'category': category,
+                'platform': 'mastodon',
+                'status': 'Success',
+                'response': mastodon_response.json()
+            }
+        else:
+            print(f"Mastodon Error {mastodon_response.status_code} for {application_name}")
+            return {
+                'application_name': application_name,
+                'category': category,
+                'platform': 'mastodon',
+                'status': f"Error {mastodon_response.status_code}",
+                'response': mastodon_response_text
+            }
+    except requests.exceptions.RequestException as e:
+        print(f"Mastodon request failed for {application_name}: {e}")
+        return {
+            'application_name': application_name,
+            'category': category,
+            'platform': 'mastodon',
+            'status': 'Failed',
+            'error': str(e)
+        }
+
+
+def send_reddit_request(base_url, payload, headers, reddit_token, application_name, category):
+    reddit_params = {
+        'platform': 'reddit',
+        'token': reddit_token
+    }
+
+    try:
+        reddit_response = requests.post(base_url, params=reddit_params, json=payload, headers=headers)
+        reddit_response_text = reddit_response.text
+        if reddit_response.status_code == 200:
+            print(f"Reddit Success: {application_name}")
+            return {
+                'application_name': application_name,
+                'category': category,
+                'platform': 'reddit',
+                'status': 'Success',
+                'response': reddit_response.json()
+            }
+        else:
+            print(f"Reddit Error {reddit_response.status_code} for {application_name}")
+            return {
+                'application_name': application_name,
+                'category': category,
+                'platform': 'reddit',
+                'status': f"Error {reddit_response.status_code}",
+                'response': reddit_response_text
+            }
+    except requests.exceptions.RequestException as e:
+        print(f"Reddit request failed for {application_name}: {e}")
+        return {
+            'application_name': application_name,
+            'category': category,
+            'platform': 'reddit',
+            'status': 'Failed',
+            'error': str(e)
+        }
 
 
 def process_requests(csv_file_path):
@@ -17,96 +92,32 @@ def process_requests(csv_file_path):
         application_name = row['Application Name']
         category = row['Category']
 
-        payload = {
-            'applicationName': application_name,
-            'category': category
-        }
+        name_variants = [
+            application_name,
+            application_name.lower(),
+            application_name.title(),
+            f"#{application_name}"
+        ]
 
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        for variant in name_variants:
+            payload = {
+                'applicationName': variant,
+                'category': category
+            }
 
-        mastodon_params = {
-            'platform': 'mastodon',
-            'token': mastodon_token
-        }
+            headers = {
+                'Content-Type': 'application/json'
+            }
 
-        try:
-            mastodon_response = requests.post(base_url, params=mastodon_params, json=payload, headers=headers)
-            mastodon_response_text = mastodon_response.text
-            if mastodon_response.status_code == 200:
-                print(f"Mastodon Success: {application_name}")
-                responses.append({
-                    'application_name': application_name,
-                    'category': category,
-                    'platform': 'mastodon',
-                    'status': 'Success',
-                    'response': mastodon_response.json()
-                })
-            else:
-                print(f"Mastodon Error {mastodon_response.status_code} for {application_name}")
-                responses.append({
-                    'application_name': application_name,
-                    'category': category,
-                    'platform': 'mastodon',
-                    'status': f"Error {mastodon_response.status_code}",
-                    'response': mastodon_response_text
-                })
-        except requests.exceptions.RequestException as e:
-            print(f"Mastodon request failed for {application_name}: {e}")
-            responses.append({
-                'application_name': application_name,
-                'category': category,
-                'platform': 'mastodon',
-                'status': 'Failed',
-                'error': str(e)
-            })
+            mastodon_response = send_mastodon_request(base_url, payload, headers, mastodon_token, variant, category)
+            responses.append(mastodon_response)
 
-        time.sleep(20)
+            # time.sleep(2)
 
-        reddit_params = {
-            'platform': 'reddit',
-            'token': reddit_token
-        }
+            # reddit_response = send_reddit_request(base_url, payload, headers, reddit_token, variant, category)
+            # responses.append(reddit_response)
 
-        try:
-            reddit_response = requests.post(base_url, params=reddit_params, json=payload, headers=headers)
-            reddit_response_text = reddit_response.text
-            if reddit_response.status_code == 200:
-                print(f"Reddit Success: {application_name}")
-                responses.append({
-                    'application_name': application_name,
-                    'category': category,
-                    'platform': 'reddit',
-                    'status': 'Success',
-                    'response': reddit_response.json()
-                })
-            else:
-                print(f"Reddit Error {reddit_response.status_code} for {application_name}")
-                responses.append({
-                    'application_name': application_name,
-                    'category': category,
-                    'platform': 'reddit',
-                    'status': f"Error {reddit_response.status_code}",
-                    'response': reddit_response_text
-                })
-        except requests.exceptions.RequestException as e:
-            print(f"Reddit request failed for {application_name}: {e}")
-            responses.append({
-                'application_name': application_name,
-                'category': category,
-                'platform': 'reddit',
-                'status': 'Failed',
-                'error': str(e)
-            })
-
-        time.sleep(2)
-
-    output_file = 'platform_responses.json'
-    with open(output_file, 'w') as f:
-        json.dump(responses, f, indent=4)
-
-    print(f"Responses saved to {output_file}")
+            time.sleep(2)
 
 
 def main():

@@ -14,54 +14,49 @@ logger = logging.getLogger(__name__)
 
 
 class MastodonService(ServiceInterface):
-    import requests
-    import logging
 
-    logger = logging.getLogger(__name__)
+    def search_posts(self, query, limit, token, from_date=None, to_date=None):
+        try:
+            endpoint = 'https://mastodon.social/api/v2/search'
+            headers = {'Authorization': f'Bearer {token}'}
+            results = []
+            offset = 0
+            max_limit_per_request = 40
+            requested_limit = limit if limit is not None else 20
 
-    class MastodonAPI:
-        def search_posts(self, query, limit, token, from_date=None, to_date=None):
-            try:
-                endpoint = 'https://mastodon.social/api/v2/search'
-                headers = {'Authorization': f'Bearer {token}'}
-                results = []
-                offset = 0
-                max_limit_per_request = 40
-                requested_limit = limit if limit is not None else 20
+            limit_per_request = min(requested_limit, max_limit_per_request)
 
-                limit_per_request = min(requested_limit, max_limit_per_request)
+            while True:
+                params = {
+                    'q': query,
+                    'type': 'statuses',
+                    'limit': limit_per_request,
+                    'offset': offset
+                }
 
-                while True:
-                    params = {
-                        'q': query,
-                        'type': 'statuses',
-                        'limit': limit_per_request,
-                        'offset': offset
-                    }
+                response = requests.get(endpoint, params=params, headers=headers)
+                response.raise_for_status()
+                fetched_posts = response.json().get('statuses', [])
 
-                    response = requests.get(endpoint, params=params, headers=headers)
-                    response.raise_for_status()
-                    fetched_posts = response.json().get('statuses', [])
+                if not fetched_posts:
+                    break
 
-                    if not fetched_posts:
-                        break
+                results.extend(fetched_posts)
 
-                    results.extend(fetched_posts)
+                offset += len(fetched_posts)
 
-                    offset += len(fetched_posts)
+                if len(fetched_posts) < limit_per_request:
+                    break
 
-                    if len(fetched_posts) < limit_per_request:
-                        break
+                if limit is not None and len(results) >= limit:
+                    results = results[:limit]
+                    break
 
-                    if limit is not None and len(results) >= limit:
-                        results = results[:limit]
-                        break
+            return results
 
-                return results
-
-            except requests.RequestException as e:
-                logger.error(f"Failed to fetch posts from Mastodon: {e}")
-                raise
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch posts from Mastodon: {e}")
+            raise
 
     def filter_posts(self, posts, from_date=None, to_date=None):
         filtered_posts = []
